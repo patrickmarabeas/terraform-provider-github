@@ -357,7 +357,7 @@ func buildProtectionRequest(d *schema.ResourceData) (*github.ProtectionRequest, 
 }
 
 func flattenAndSetRequiredStatusChecks(d *schema.ResourceData, protection *github.Protection) error {
-	rsc := protection.RequiredStatusChecks
+	rsc := protection.GetRequiredStatusChecks()
 	if rsc != nil {
 		contexts := make([]interface{}, 0, len(rsc.Contexts))
 		for _, c := range rsc.Contexts {
@@ -426,22 +426,27 @@ func requireSignedCommitsUpdate(d *schema.ResourceData, meta interface{}) (err e
 }
 
 func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection *github.Protection) error {
-	rprr := protection.RequiredPullRequestReviews
+	rprr := protection.GetRequiredPullRequestReviews()
+	var users, teams []interface{}
 	if rprr != nil {
-		users := make([]interface{}, 0, len(rprr.DismissalRestrictions.Users))
-		for _, u := range rprr.DismissalRestrictions.Users {
-			if u.Login != nil {
-				users = append(users, *u.Login)
-			}
-		}
+		restrictions := rprr.GetDismissalRestrictions()
 
-		teams := make([]interface{}, 0, len(rprr.DismissalRestrictions.Teams))
-		for _, t := range rprr.DismissalRestrictions.Teams {
-			if t.Slug != nil {
-				teams = append(teams, *t.Slug)
+		if restrictions != nil {
+			users = make([]interface{}, 0, len(restrictions.Users))
+			for _, u := range restrictions.Users {
+				if u.Login != nil {
+					users = append(users, *u.Login)
+				}
 			}
-		}
 
+			teams = make([]interface{}, 0, len(restrictions.Teams))
+			for _, t := range restrictions.Teams {
+				if t.Slug != nil {
+					teams = append(teams, *t.Slug)
+				}
+			}
+
+		}
 		return d.Set("required_pull_request_reviews", []interface{}{
 			map[string]interface{}{
 				"dismiss_stale_reviews":           rprr.DismissStaleReviews,
@@ -457,7 +462,7 @@ func flattenAndSetRequiredPullRequestReviews(d *schema.ResourceData, protection 
 }
 
 func flattenAndSetRestrictions(d *schema.ResourceData, protection *github.Protection) error {
-	restrictions := protection.Restrictions
+	restrictions := protection.GetRestrictions()
 	if restrictions != nil {
 		users := make([]interface{}, 0, len(restrictions.Users))
 		for _, u := range restrictions.Users {
